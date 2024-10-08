@@ -21,6 +21,13 @@
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
     <option name="ROOT_SYNC" value="SYNC" />
   </component>
+  <component name="HighlightingSettingsPerFile">
+    <setting file="file://$PROJECT_DIR$/main.py" root0="FORCE_HIGHLIGHTING" />
+  </component>
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="CurrentFile" />
+    <option name="showPreview" value="true" />
+  </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 8
 }</component>
@@ -40,6 +47,7 @@
     &quot;Python.pip install python-docx.executor&quot;: &quot;Run&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
     &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/O&amp;OK/PycharmProjects/My Project/pythonProject1/pythonProject/pythonProject/ЄВІ (АНГЛІЙСЬКА)&quot;,
     &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;
   },
   &quot;keyToStringList&quot;: {
@@ -51,6 +59,9 @@
   }
 }</component>
   <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\O&amp;OK\PycharmProjects\My Project\pythonProject1\pythonProject\pythonProject\ЄВІ (АНГЛІЙСЬКА)" />
+    </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="C:\Users\O&amp;OK\PycharmProjects\My Project\pythonProject1\pythonProject\pythonProject\ЄВІ (АНГЛІЙСЬКА)" />
     </key>
@@ -191,17 +202,46 @@
       <option name="presentableId" value="Default" />
       <updated>1720219320351</updated>
     </task>
+    <task id="LOCAL-00001" summary="code 2019-2022">
+      <option name="closed" value="true" />
+      <created>1720707901464</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1720707901464</updated>
+    </task>
+    <task id="LOCAL-00002" summary="code 2019-2022">
+      <option name="closed" value="true" />
+      <created>1720707914368</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1720707914368</updated>
+    </task>
+    <task id="LOCAL-00003" summary="code 2019-2022">
+      <option name="closed" value="true" />
+      <created>1720708069204</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1720708069204</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/main.py</url>
-          <line>75</line>
-          <option name="timeStamp" value="1" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="code 2019-2022" />
+    <option name="LAST_COMMIT_MESSAGE" value="code 2019-2022" />
   </component>
 </project>
