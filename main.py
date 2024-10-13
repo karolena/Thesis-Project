@@ -23,6 +23,17 @@ logging.info(f"Значення ENV: {os.environ.get('ENV')}")
 
 TOKEN = BOT_TOKEN
 
+
+def clear_files():
+    with open('statistics.json', 'w') as stats_file:
+        json.dump({}, stats_file)  # Очищує statistics.json
+    with open('feedback.json', 'w') as feedback_file:
+        json.dump([], feedback_file)  # Очищує feedback.json
+
+
+# Викликай цю функцію, коли потрібно очистити файли
+clear_files()
+
 # Шлях до файлу
 try:
     with open("Updated_EVI.json", 'r', encoding='utf-8') as f:
@@ -238,7 +249,7 @@ async def handle_retry_task(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         task_number = f"Завдання {task['task_number']}:"  # Форматування номера завдання
         instructions = task.get('instructions', "Текст завдання не знайдено.")
         texts = "\n\n".join(task.get('texts', ["Текст не знайдено."]))
-        choices = "\n".join([f"{chr(65+i)}. {choice}" for i, choice in enumerate(task.get('choices', []))])
+        choices = "\n".join([f"{chr(65 + i)}. {choice}" for i, choice in enumerate(task.get('choices', []))])
 
         # Формуємо відповідь
         response = f"{task_number}\n{instructions}\n\n{texts}\n\nВаріанти:\n{choices}"
