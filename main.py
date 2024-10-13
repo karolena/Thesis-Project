@@ -1,16 +1,25 @@
 import nest_asyncio
 
 nest_asyncio.apply()
-import json
 import logging
-
 import os
+import json
 from datetime import datetime
-
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram import Update
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes, MessageHandler, filters
 
 from config import BOT_TOKEN
+
+# Налаштування логування
+logging.basicConfig(level=logging.INFO)
+
+# Встановлення змінної оточення для локального тестування
+if 'ENV' not in os.environ:
+    os.environ['ENV'] = 'local'  # Для локального тестування
+
+# Логування значення ENV
+logging.info(f"Значення ENV: {os.environ.get('ENV')}")
 
 TOKEN = BOT_TOKEN
 
@@ -62,19 +71,6 @@ def convert_score_to_200_scale(year, score):
 
 
 # Команда /обробник запуску
-def create_main_menu_keyboard():
-    keyboard = [
-        [InlineKeyboardButton("2022/2023", callback_data='2022')],
-        [InlineKeyboardButton("2021", callback_data='2021')],
-        [InlineKeyboardButton("2020", callback_data='2020')],
-        [InlineKeyboardButton("2019", callback_data='2019')],
-        [InlineKeyboardButton("Усе про ЄВІ📝", url='https://testportal.gov.ua/yedynyj-vstupnyj-ispyt-2')],
-        [InlineKeyboardButton("Корисні ресурси📖", callback_data='resources')],
-        [InlineKeyboardButton("Залиште Feedback 📣", callback_data='leave_feedback')]
-    ]
-    return InlineKeyboardMarkup(keyboard)
-
-
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     keyboard = [
         [InlineKeyboardButton("2022/2023", callback_data='2022')],
@@ -198,6 +194,7 @@ async def send_task(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 # Обробка відповідей користувача
+# Обробка відповідей користувача
 async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
     await query.answer()
@@ -225,27 +222,39 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     await query.edit_message_text(text=response, reply_markup=reply_markup)
 
 
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-
-
+# Функція для обробки "Назад до завдання"
 async def handle_retry_task(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
     await query.answer()
 
-    await send_task(update, context)  # Знову надішліть те саме завдання
+    # Отримуємо індекс поточного завдання
+    current_task_index = context.user_data['current_task_index']
+    tasks = context.user_data['tasks']
 
-    # Додайте кнопку "Далі"
-    keyboard = [
-        [
-            InlineKeyboardButton("Далі", callback_data='next_task')
-            ]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
+    if 0 <= current_task_index < len(tasks):  # Перевірка наявності завдання
+        task = tasks[current_task_index]
 
-    # Відправте повідомлення з новою клавіатурою
-    await query.message.edit_reply_markup(reply_markup)
+        # Форматування тексту завдання
+        task_number = f"Завдання {task['task_number']}:"  # Форматування номера завдання
+        instructions = task.get('instructions', "Текст завдання не знайдено.")
+        texts = "\n\n".join(task.get('texts', ["Текст не знайдено."]))
+        choices = "\n".join([f"{chr(65+i)}. {choice}" for i, choice in enumerate(task.get('choices', []))])
+
+        # Формуємо відповідь
+        response = f"{task_number}\n{instructions}\n\n{texts}\n\nВаріанти:\n{choices}"
+
+        # Кнопка тільки "ДАЛІ" для продовження
+        next_button = [
+            [InlineKeyboardButton("ДАЛІ▶️", callback_data='next_task')]
+        ]
+
+        reply_markup = InlineKeyboardMarkup(next_button)
+        await query.edit_message_text(text=response, reply_markup=reply_markup)
+    else:
+        await query.edit_message_text(text="Завдання не знайдено.")
 
 
+# Функція для обробки переходу до наступного завдання
 async def handle_next_task(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
     await query.answer()
@@ -291,9 +300,9 @@ async def send_part_results(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     # Якщо частина 'Use of English', показуємо тільки main_buttons
     elif selected_part == 'Use of English':
         main_buttons = [
-            [InlineKeyboardButton("Дізнатися результат проходження тесту🏆", callback_data='finish')],
             [InlineKeyboardButton("Назад до частин цього року◀️", callback_data='back_to_parts')],
             [InlineKeyboardButton("Повернутися до головного меню🏠", callback_data='back_to_main_menu')],
+            [InlineKeyboardButton("Дізнатися результат проходження тесту🏆", callback_data='finish')],
             [InlineKeyboardButton("Словнич🆗",
                                   url='https://www.dictionary.cambridge.org/uk/dictionary/english-ukrainian/')],
             [InlineKeyboardButton("Корисні ресурси📖", callback_data='resources')]
@@ -325,7 +334,7 @@ async def handle_next_button(update: Update) -> None:
     total_score = results['total_score']
     max_score = results['max_score']
 
-    # Формування тексту для відправлення
+    # Формування тексту для відправки
     result_text = f"Ви закінчили цей тест✔️\nВаш результат: {total_score}/{max_score} балів."
 
     # Оновлення повідомлення
@@ -396,7 +405,6 @@ async def finish_test(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
             "Усе про ЄВІ📝 (процедура реєстрації, календар проведення та ін.)",
             url='https://testportal.gov.ua/yedynyj-vstupnyj-ispyt-2/')],
         [InlineKeyboardButton("Корисні ресурси📖", callback_data='resources')],
-        [InlineKeyboardButton("Залиште Feedback 📣", callback_data='leave_feedback')]
     ]
 
     # Показати результат і передати клавіатуру
@@ -422,141 +430,222 @@ async def handle_back_to_main_menu(update: Update, context: ContextTypes.DEFAULT
     await start(update, context)
 
 
+# Функція для читання відгуків з feedback.json
+def read_feedbacks():
+    if os.path.exists("feedback.json"):
+        with open("feedback.json", "r", encoding="utf-8") as feedback_file:
+            return json.load(feedback_file)
+    return {"feedbacks": []}
+
+
+# Функція для ініціалізації початкового feedback.json, якщо файл не існує
+def initialize_feedback_file():
+    initial_data = {"feedbacks": []}
+    if not os.path.exists("feedback.json"):
+        with open("feedback.json", "w", encoding="utf-8") as feedback_file:
+            json.dump(initial_data, feedback_file, ensure_ascii=False, indent=4)
+
+
+# Функція для додавання відгуку та оновлення статистики
+def add_feedback(user_id, feedback, rating):
+    feedback_data = {
+        "user_id": user_id,
+        "timestamp": datetime.now().isoformat(),
+        "feedback": feedback,
+        "rating": rating
+    }
+
+    try:
+        data = read_feedbacks()
+        data["feedbacks"].append(feedback_data)
+
+        with open("feedback.json", "w", encoding="utf-8") as feedback_file:
+            json.dump(data, feedback_file, ensure_ascii=False, indent=4)
+
+        # Оновлення статистики після додавання відгуку
+        increment_statistics(rating)  # rating може бути "positive", "negative", "simple_yes" або "simple_no"
+    except Exception as e:
+        logging.error(f"Помилка при додаванні відгуку: {e}")
+
+
+# Функція для завантаження або ініціалізації статистики
+def load_statistics():
+    if os.path.exists("statistics.json"):
+        with open("statistics.json", "r", encoding="utf-8") as file:
+            stats_data = json.load(file)
+            print("Статистика завантажена:", stats_data)
+            return stats_data
+    else:
+        print("Файл statistics.json не знайдено. Ініціалізація...")
+        initialize_statistics()
+        return load_statistics()  # Перезапустимо функцію після ініціалізації
+
+
+def initialize_statistics():
+    print("Ініціалізація статистики...")
+    stats_data = {
+        "with_positive_comments": 0,
+        "with_negative_comments": 0,
+        "yes": 0,
+        "no": 0
+    }
+    with open("statistics.json", "w", encoding="utf-8") as stats_file:
+        json.dump(stats_data, stats_file, ensure_ascii=False, indent=4)
+    print("Файл statistics.json ініціалізовано з початковими значеннями:", stats_data)
+
+
+# Функція для оновлення статистики на основі типу відгуку
+def increment_statistics(feedback_type):
+    stats_data = load_statistics()
+    if feedback_type == "positive":
+        stats_data["with_positive_comments"] += 1
+    elif feedback_type == "negative":
+        stats_data["with_negative_comments"] += 1
+    elif feedback_type == "yes":
+        stats_data["yes"] += 1
+    elif feedback_type == "no":
+        stats_data["no"] += 1
+
+    save_statistics(stats_data)  # Викликаємо функцію збереження
+
+
+def save_statistics(stats_data):
+    with open("statistics.json", "w", encoding="utf-8") as stats_file:
+        json.dump(stats_data, stats_file, ensure_ascii=False, indent=4)
+
+
+# Обробник для запиту відгуку
 async def leave_feedback(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
     await query.answer()
-
     feedback_keyboard = [
         [InlineKeyboardButton("ТАК", callback_data='feedback_yes')],
         [InlineKeyboardButton("НІ", callback_data='feedback_no')]
     ]
     reply_markup = InlineKeyboardMarkup(feedback_keyboard)
-
     await query.edit_message_text("Чи сподобався Вам бот🤔💭?", reply_markup=reply_markup)
 
 
-async def handle_feedback_yes(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+# Обробник для кнопки "ТАК"
+async def handle_feedback_yes(update: Update, context):
+    increment_statistics("yes")  # Оновлення статистики для простого "так"
+
     query = update.callback_query
     await query.answer()
+
     await query.edit_message_text(
         "Дякую за Ваш відгук🫶🏻🙏💬! Якщо хочете, залиште короткий коментар про ваше враження:"
     )
-    context.user_data['awaiting_comment'] = True  # Стан для коментаря
+    context.user_data['awaiting_comment'] = True
 
     reply_markup = InlineKeyboardMarkup(
-        [
-            [InlineKeyboardButton("Повернення до головного меню🏠", callback_data='back_to_main_menu')]
-        ]
+        [[InlineKeyboardButton("Повернення до головного меню🏠", callback_data='back_to_main_menu')]]
     )
     await query.message.reply_text("Ваш коментар:", reply_markup=reply_markup)
 
 
-async def handle_feedback_no(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def handle_feedback_no(update, context):
+    increment_statistics("no")  # Оновлення статистики для простого "ні"
+
     query = update.callback_query
     await query.answer()
+
     await query.edit_message_text(
         "Дякую за чесність, залиште вашу пропозицію😊📝:"
     )
     context.user_data['awaiting_feedback'] = True
 
     reply_markup = InlineKeyboardMarkup(
-        [
-            [InlineKeyboardButton("Повернення до головного меню🏠", callback_data='back_to_main_menu')]
-        ]
+        [[InlineKeyboardButton("Повернення до головного меню🏠", callback_data='back_to_main_menu')]]
     )
     await query.message.reply_text("Ваш коментар:", reply_markup=reply_markup)
 
 
-async def back_to_main_menu(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
-    query = update.callback_query
-    await query.answer()
-    reply_markup = create_main_menu_keyboard()  # Виклик функції для створення клавіатури
-    await query.edit_message_text("Вітаємо у головному меню! Виберіть опцію:", reply_markup=reply_markup)
+async def back_to_main_menu(update: Update) -> None:
+    await update.callback_query.answer()
+    await update.callback_query.edit_message_text("Вітаємо в головному меню! Що ви хочете зробити далі?")
+
+    # Додайте тут ваші основні варіанти меню
 
 
+# Обробник для коментарів користувачів після відгуку
 async def handle_user_feedback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_id = update.message.from_user.id
+    feedback = update.message.text
+
     if context.user_data.get('awaiting_feedback'):
-        feedback = update.message.text
-        rating = context.user_data.get('feedback_rating', 'negative')
-
-        # Зберегти відгук
-        add_feedback(update.message.from_user.id, feedback, rating)
-
+        add_feedback(user_id, feedback, 'negative')  # Відгук з коментарем
         context.user_data['awaiting_feedback'] = False
-        await update.message.reply_text("Дякую за вашу пропозицію! 🫶🏻💖", reply_markup=InlineKeyboardMarkup(
-            [[InlineKeyboardButton("Повернення до головного меню🏠", callback_data='back_to_main_menu')]]))
+
+        reply_markup = InlineKeyboardMarkup(
+            [[InlineKeyboardButton("Повернення до головного меню🏠", callback_data='back_to_main_menu')]]
+        )
+        await update.message.reply_text(
+            "Дякую за вашу пропозицію! 🫶🏻💖",
+            reply_markup=reply_markup
+        )
 
     elif context.user_data.get('awaiting_comment'):
-        comment = update.message.text
-        add_feedback(update.message.from_user.id, comment, "positive")  # Вважаємо коментар позитивним
-
+        add_feedback(user_id, feedback, 'positive')  # Відгук з коментарем
         context.user_data['awaiting_comment'] = False
-        await update.message.reply_text("Дякую за ваш коментар! 🫶🏻💖", reply_markup=InlineKeyboardMarkup(
-            [[InlineKeyboardButton("Повернення до головного меню🏠", callback_data='back_to_main_menu')]]))
+
+        reply_markup = InlineKeyboardMarkup(
+            [[InlineKeyboardButton("Повернення до головного меню🏠", callback_data='back_to_main_menu')]]
+        )
+        await update.message.reply_text(
+            "Дякую за ваш коментар! 🫶🏻💖",
+            reply_markup=reply_markup
+        )
 
 
-# Створюємо початковий файл feedback.json, якщо він не існує
-initial_data = {"feedbacks": []}
-
-with open("feedback.json", "w", encoding="utf-8") as f:
-    json.dump(initial_data, f, ensure_ascii=False, indent=4)
-
-
-def add_feedback(user_id, feedback, rating):
-    feedback_data = {"user_id": user_id, "timestamp": datetime.now().isoformat(), "feedback": feedback,
-                     "rating": rating}
-
-    # Перевірка, чи існує файл
-    if os.path.exists("feedback.json"):
-        with open("feedback.json", "r", encoding="utf-8") as feedback_file:  # Renamed 'f' to 'feedback_file'
-            data = json.load(feedback_file)
-    else:
-        data = {"feedbacks": []}
-
-    # Додаємо новий відгук
-    data["feedbacks"].append(feedback_data)
-
-    # Записуємо оновлені дані у файл
-    with open("feedback.json", "w", encoding="utf-8") as feedback_file:  # Renamed 'f' to 'feedback_file'
-        json.dump(data, feedback_file, ensure_ascii=False, indent=4)
-
-
-def count_positive_feedbacks():
-    if os.path.exists("feedback.json"):
-        with open("feedback.json", "r", encoding="utf-8") as file:  # Renamed 'f' to 'file'
-            data = json.load(file)
-
-        positive_feedbacks = [feedback for feedback in data["feedbacks"] if feedback.get("rating") == "positive"]
-        return len(positive_feedbacks)
-    return 0
-
-
-def count_negative_feedbacks():
-    if os.path.exists("feedback.json"):
-        with open("feedback.json", "r", encoding="utf-8") as file:  # Renamed 'f' to 'file'
-            data = json.load(file)
-
-        negative_feedbacks = [feedback for feedback in data["feedbacks"] if feedback.get("rating") == "negative"]
-        return len(negative_feedbacks)
-    return 0
-
-
-async def stats(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
-    positive_count = count_positive_feedbacks()
-    negative_count = count_negative_feedbacks()
-    await update.message.reply_text(
-        f"Кількість позитивних відгуків: {positive_count}\nКількість негативних відгуків: {negative_count}"
-    )
-
-
-def save_statistics(positive_count, negative_count):
+# Функція для скидання статистики
+async def reset_statistics(update: Update) -> None:
+    logging.info("Скидання статистики...")
     stats_data = {
-        "positive_feedbacks": positive_count,
-        "negative_feedbacks": negative_count
+        "with_positive_comments": 0,
+        "with_negative_comments": 0,
+        "yes": 0,
+        "no": 0
     }
+    with open("statistics.json", "w", encoding="utf-8") as stats_file:
+        json.dump(stats_data, stats_file, ensure_ascii=False, indent=4)
+    await update.message.reply_text("Статистика була скинута!")
 
-    with open("statistics.json", "w", encoding="utf-8") as file:  # Renamed 'f' to 'file'
-        json.dump(stats_data, file, ensure_ascii=False, indent=4)
+    # Приклад використання context
+    logging.info(f"User {update.effective_user.id} скинув статистику.")
+
+
+async def set_webhook(application) -> None:
+    webhook_url = "https://yourdomain.com/your_webhook_path"  # Заміни на ваш URL
+    await application.bot.set_webhook(webhook_url)
+
+
+async def handle_reset_command(update: Update) -> None:
+    await reset_statistics(update)  # Виклик скидання статистики
+
+
+async def clear_feedback(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+    logging.info("Виконується команда /clear_feedback")
+    initial_data = {"feedbacks": []}
+    try:
+        with open("feedback.json", "w", encoding="utf-8") as feedback_file:
+            json.dump(initial_data, feedback_file, ensure_ascii=False, indent=4)
+        await update.message.reply_text("Всі відгуки були очищені!")
+    except Exception as e:
+        logging.error(f"Помилка при очищенні відгуків: {e}")
+        await update.message.reply_text("Виникла помилка при очищенні відгуків.")
+
+
+# Функція для отримання статистики
+async def stats(update: Update) -> None:
+    stats_data = load_statistics()
+    response_message = (
+        f"Позитивні відгуки: {stats_data['with_positive_comments']}\n"
+        f"Негативні відгуки: {stats_data['with_negative_comments']}\n"
+        f"Прості так: {stats_data['yes']}\n"
+        f"Прості ні: {stats_data['no']}"
+    )
+    await update.message.reply_text(response_message)
 
 
 async def main() -> None:
@@ -565,7 +654,21 @@ async def main() -> None:
         level=logging.INFO
     )
 
+    # Ініціалізація файлів, якщо їх немає
+    initialize_feedback_file()  # Викликаємо функцію
+    initialize_statistics()
+
     application = Application.builder().token(TOKEN).build()
+
+    # Налаштування вебхука
+    await set_webhook(application)
+
+    application.add_handler(CommandHandler("reset", handle_reset_command))
+    application.add_handler(CommandHandler("stats", stats))
+    application.add_handler(CallbackQueryHandler(leave_feedback, pattern='leave_feedback'))
+    application.add_handler(CallbackQueryHandler(handle_feedback_yes, pattern='feedback_yes'))
+    application.add_handler(CallbackQueryHandler(handle_feedback_no, pattern='feedback_no'))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_user_feedback))
     application.add_handler(CallbackQueryHandler(handle_retry_task, pattern='^retry_task$'))
     application.add_handler(CallbackQueryHandler(handle_next_task, pattern='^next_task$'))
     application.add_handler(CommandHandler("start", start))
@@ -579,11 +682,13 @@ async def main() -> None:
     application.add_handler(CallbackQueryHandler(restart, pattern='^restart$'))
     application.add_handler(CallbackQueryHandler(lambda u, c: start(u, c), pattern='^back_to_main_menu$'))
     application.add_handler(CallbackQueryHandler(lambda u, c: resources(u, c), pattern='^back_to_main_menu$'))
-    application.add_handler(CallbackQueryHandler(leave_feedback, pattern='^leave_feedback$'))
-    application.add_handler(CallbackQueryHandler(handle_feedback_yes, pattern='^feedback_yes$'))
-    application.add_handler(CallbackQueryHandler(handle_feedback_no, pattern='^feedback_no$'))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_user_feedback))
-    application.add_handler(CommandHandler("stats", stats))
+    application.add_handler(CallbackQueryHandler(back_to_main_menu, pattern='back_to_main_menu'))
+    application.add_handler(CommandHandler("clear_feedback", clear_feedback))
+    application.add_handler(CallbackQueryHandler(back_to_parts, pattern='^back_to_parts$'))
+    application.add_handler(CallbackQueryHandler(handle_back_to_main_menu, pattern='back_to_main_menu'))
+
+    # Видалення вебхука (якщо є)
+    await application.bot.delete_webhook()
 
     application.run_polling()
 

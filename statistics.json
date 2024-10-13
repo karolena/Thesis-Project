@@ -1,4 +1,6 @@
 {
-    "positive_feedbacks": 1,
-    "negative_feedbacks": 0
+    "with_positive_comments": 1,
+    "with_negative_comments": 0,
+    "yes": 2,
+    "no": 0
 }
