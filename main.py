@@ -189,13 +189,15 @@ async def send_task(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     for i, choice in enumerate(task['choices']):
         text += f"{chr(65 + i)}. {choice}\n"
 
+    # Клавіатура
     keyboard = [
-        [InlineKeyboardButton(chr(65 + i), callback_data=f"answer_{chr(65 + i)}")] for i in range(len(task['choices']))
+        [InlineKeyboardButton(chr(65 + i), callback_data=f"answer_{chr(65 + i)}") for i in range(len(task['choices']))],
+        [InlineKeyboardButton("Закінчити тест❌", callback_data='finish')],
+        [InlineKeyboardButton("Словнич🆗", url='https://www.dictionary.cambridge.org/uk/dictionary/english-ukrainian/')],
+        [InlineKeyboardButton("Назад до частин цього року◀️", callback_data='back_to_parts')],
+        [InlineKeyboardButton("Залишити відгук", callback_data='leave_feedback')]
     ]
-    keyboard.append([InlineKeyboardButton("Закінчити тест❌", callback_data='finish')])
-    keyboard.append(
-        [InlineKeyboardButton("Словнич🆗", url='https://www.dictionary.cambridge.org/uk/dictionary/english-ukrainian/')])
-    keyboard.append([InlineKeyboardButton("Назад до частин цього року◀️", callback_data='back_to_parts')])
+
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     if update.callback_query:
@@ -316,7 +318,8 @@ async def send_part_results(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             [InlineKeyboardButton("Дізнатися результат проходження тесту🏆", callback_data='finish')],
             [InlineKeyboardButton("Словнич🆗",
                                   url='https://www.dictionary.cambridge.org/uk/dictionary/english-ukrainian/')],
-            [InlineKeyboardButton("Корисні ресурси📖", callback_data='resources')]
+            [InlineKeyboardButton("Корисні ресурси📖", callback_data='resources')],
+            [InlineKeyboardButton("Залишити відгук", callback_data='leave_feedback')],
         ]
 
         # Створення інтерфейсу для кнопок
@@ -416,6 +419,7 @@ async def finish_test(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
             "Усе про ЄВІ📝 (процедура реєстрації, календар проведення та ін.)",
             url='https://testportal.gov.ua/yedynyj-vstupnyj-ispyt-2/')],
         [InlineKeyboardButton("Корисні ресурси📖", callback_data='resources')],
+        [InlineKeyboardButton("Залиште Feedback 📣", callback_data='leave_feedback')]
     ]
 
     # Показати результат і передати клавіатуру
