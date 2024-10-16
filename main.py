@@ -14,12 +14,12 @@ from config import BOT_TOKEN
 # Налаштування логування
 logging.basicConfig(level=logging.INFO)
 
-# Встановлення змінної оточення для локального тестування
 if 'ENV' not in os.environ:
-    os.environ['ENV'] = 'local'  # Для локального тестування
+    os.environ['ENV'] = 'production'  # Для серверного оточення (Glitch)
 
 # Логування значення ENV
 logging.info(f"Значення ENV: {os.environ.get('ENV')}")
+
 
 TOKEN = BOT_TOKEN
 
